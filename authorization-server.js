@@ -6,7 +6,7 @@ const {
 	randomString,
 	containsAll,
 	decodeAuthCredentials,
-	timeout,
+	timeout, randomString,
 } = require("./utils")
 
 const config = {
@@ -53,6 +53,34 @@ app.use(bodyParser.urlencoded({ extended: true }))
 /*
 Your code here
 */
+app.get('/authorise', function (request,response){
+	let client_id = request.query.client_Id;
+	if(!Object.keys(clients).includes(client_id))
+	{
+		response.status(400);
+	}
+	else
+	{
+		let client = clients[client_id];
+		if(request.query.scopes.every((scope) => client.scopes.includes(scope)))
+		{
+			response.status(200);
+			let randomString = randomString();
+			requests[randomString] = request;
+			response.render("login", client, request.query.scope, randomString)
+		}
+	}
+	response.end()
+})
+
+app.post('/login', function (request, response, body){
+	let user = body.userName;
+	if(!(Object.keys(users).includes(user)) || !users[user] !== body.password || !requests[body.requestId])
+	{
+		response.status(401)
+	}
+
+})
 
 const server = app.listen(config.port, "localhost", function () {
 	var host = server.address().address
