@@ -2,6 +2,7 @@ const fs = require("fs")
 const express = require("express")
 const bodyParser = require("body-parser")
 const jwt = require("jsonwebtoken")
+const privateKey = require("assets/private_key.pem")
 const {
 	randomString,
 	containsAll,
@@ -73,13 +74,46 @@ app.get('/authorise', function (request,response){
 	response.end()
 })
 
+app.post('/approve', function (request, response,body){
+	let username = body.userName
+	if(!(Object.keys(users).includes(username)) || (!Object.values(users).includes(body.password)) || !requests[body.requestId])
+	{
+		response.status(401)
+	}
+	else {
+		let requestClient = requests[body.requestId];
+		delete requests[body.requestId];
+		let authorisationKey = randomString();
+		authorizationCodes[authorisationKey] = {"username": username, "clientRequest":requestClient}
+		response.redirect(`www.example.com/?code=${authorisationKey}`)
+	}
+})
+
+app.post('/token', function (request, response, body){
+	if(!authorizationCodes[body.code])
+	{
+		response.status(401)
+		response.send;
+
+	}
+	else {
+		let code = body.code;
+		jwt.sign({"username" : code.username,"scopes" :code.clientRequest.scope},privateKey
+			,"RS256", function (jwt){
+			response.json();
+			response.status(200);
+			response.body({"access_token":jwt, "token_type" : "Bearer"})
+			} );
+
+	}
+})
+
 app.post('/login', function (request, response, body){
 	let user = body.userName;
 	if(!(Object.keys(users).includes(user)) || !users[user] !== body.password || !requests[body.requestId])
 	{
 		response.status(401)
 	}
-
 })
 
 const server = app.listen(config.port, "localhost", function () {
